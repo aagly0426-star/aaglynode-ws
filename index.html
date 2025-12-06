@@ -3,497 +3,324 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Tech Space | 个人博客</title>
+    <title>GHOST_PROTOCOL | 静态终端</title>
     <style>
-        /* --- CSS 样式部分 --- */
+        /* --- CSS 样式定义区域 --- */
         :root {
-            --bg-color: #0b0c10;
-            --text-color: #c5c6c7;
-            --accent-color: #66fcf1; /* 赛博青色 */
-            --secondary-color: #45a29e;
-            --card-bg: rgba(31, 40, 51, 0.8);
-            --nav-bg: rgba(11, 12, 16, 0.85);
+            --bg-color: #050a0e; /* 深色背景 */
+            --term-bg: #0a0f14;
+            --text-primary: #00ffc8; /* 赛博青 */
+            --text-secondary: #a0a0a0;
+            --neon-pink: #ff00d4;
+            --scan-line-color: rgba(0, 255, 200, 0.05);
         }
 
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Consolas', 'Monaco', 'Courier New', monospace; /* 程序员字体 */
+            /* 全局使用等宽字体，营造代码感 */
+            font-family: 'Courier New', 'Consolas', monospace;
         }
 
         body {
             background-color: var(--bg-color);
-            color: var(--text-color);
+            color: var(--text-secondary);
             overflow-x: hidden;
+            /* 模拟 CRT 显示器微微弯曲的效果 */
+            perspective: 1000px;
         }
 
-        /* 导航栏 */
-        nav {
+        /* --- 核心特效：全局扫描线 --- */
+        /* 使用伪元素覆盖全屏，利用线性渐变模拟扫描线移动 */
+        body::after {
+            content: "";
             position: fixed;
             top: 0;
-            width: 100%;
-            padding: 1rem 5%;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: repeating-linear-gradient(
+                0deg,
+                var(--scan-line-color) 0px,
+                var(--scan-line-color) 1px,
+                transparent 1px,
+                transparent 3px
+            );
+            pointer-events: none; /* 确保不挡住鼠标交互 */
+            z-index: 999;
+            animation: scanmove 10s linear infinite;
+        }
+
+        @keyframes scanmove {
+            from { background-position: 0 0; }
+            to { background-position: 0 100vh; }
+        }
+
+        /* --- 导航栏 (伪装) --- */
+        nav {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            background: var(--nav-bg);
-            backdrop-filter: blur(10px); /* 毛玻璃特效 */
-            z-index: 1000;
-            border-bottom: 1px solid rgba(102, 252, 241, 0.1);
+            padding: 1rem 5%;
+            background: rgba(5, 10, 14, 0.9);
+            border-bottom: 1px solid rgba(0, 255, 200, 0.2);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            backdrop-filter: blur(5px); /* 毛玻璃效果 */
         }
 
         .logo {
-            font-size: 1.5rem;
+            font-size: 1.2rem;
             font-weight: bold;
-            color: var(--accent-color);
-            text-decoration: none;
+            color: var(--text-primary);
             letter-spacing: 2px;
-        }
-
-        .nav-links {
-            display: flex;
-            gap: 2rem;
+            /* 简单的霓虹文字阴影 */
+            text-shadow: 0 0 5px var(--text-primary);
         }
 
         .nav-links a {
-            color: var(--text-color);
+            color: var(--text-secondary);
             text-decoration: none;
-            font-size: 1rem;
-            transition: color 0.3s ease;
+            margin-left: 2rem;
+            font-size: 0.9rem;
+            position: relative;
+            transition: color 0.3s;
+            /* 鼠标样式设为默认，增强“伪装感” */
+            cursor: default; 
         }
 
+        /* 纯CSS hover 效果，看起来能点，实际不能 */
         .nav-links a:hover {
-            color: var(--accent-color);
-            text-shadow: 0 0 8px var(--accent-color);
+            color: var(--text-primary);
+        }
+        
+        .nav-links a::before {
+             content: "[ ";
+             opacity: 0;
+             color: var(--text-primary);
+             transition: opacity 0.3s;
+        }
+        .nav-links a::after {
+             content: " ]";
+             opacity: 0;
+             color: var(--text-primary);
+             transition: opacity 0.3s;
+        }
+        .nav-links a:hover::before,
+        .nav-links a:hover::after {
+            opacity: 1;
         }
 
-        /* 首屏 Hero Section */
-        #hero {
-            height: 100vh;
+
+        /* --- 首页终端区域 --- */
+        #terminal-hero {
+            min-height: 60vh;
             display: flex;
-            flex-direction: column;
             justify-content: center;
             align-items: center;
-            position: relative;
-            text-align: center;
-        }
-
-        /* Canvas 背景层 */
-        #canvas-bg {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: -1;
-        }
-
-        .hero-content h1 {
-            font-size: 3.5rem;
-            margin-bottom: 1rem;
-            color: #fff;
-        }
-
-        .hero-content span {
-            color: var(--accent-color);
-        }
-
-        .typing-text {
-            font-size: 1.5rem;
-            color: var(--secondary-color);
-            height: 2rem; /* 占位防止跳动 */
-        }
-
-        .blink {
-            animation: blink-animation 1s steps(2, start) infinite;
-        }
-
-        @keyframes blink-animation {
-            to { visibility: hidden; }
-        }
-
-        /* 通用区块样式 */
-        section {
-            padding: 5rem 10%;
-            min-height: 80vh;
-        }
-
-        .section-title {
-            font-size: 2rem;
-            margin-bottom: 3rem;
-            border-left: 5px solid var(--accent-color);
-            padding-left: 1rem;
-            color: #fff;
-        }
-
-        /* 博客卡片网格 */
-        .grid-container {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 2rem;
-        }
-
-        .card {
-            background: var(--card-bg);
             padding: 2rem;
-            border-radius: 8px;
-            border: 1px solid transparent;
-            transition: all 0.3s ease;
-            cursor: pointer;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .card:hover {
-            transform: translateY(-10px);
-            border-color: var(--accent-color);
-            box-shadow: 0 0 20px rgba(102, 252, 241, 0.2);
-        }
-
-        .card h3 {
-            color: var(--accent-color);
-            margin-bottom: 1rem;
-        }
-
-        .card p {
-            font-size: 0.9rem;
-            line-height: 1.6;
-            color: #888;
-        }
-
-        .tag {
-            display: inline-block;
-            background: rgba(102, 252, 241, 0.1);
-            color: var(--accent-color);
-            padding: 2px 8px;
-            border-radius: 4px;
-            font-size: 0.8rem;
-            margin-top: 1rem;
-            margin-right: 0.5rem;
-        }
-
-        /* 关于我部分 */
-        .about-content {
-            display: flex;
-            gap: 3rem;
-            align-items: center;
-            flex-wrap: wrap;
         }
 
         .terminal-window {
-            background: #1e1e1e;
-            border-radius: 6px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            width: 100%;
-            max-width: 600px;
-            overflow: hidden;
-            font-family: 'Consolas', monospace;
-        }
-
-        .terminal-header {
-            background: #2d2d2d;
-            padding: 8px 15px;
-            display: flex;
-            gap: 6px;
-        }
-
-        .dot { width: 12px; height: 12px; border-radius: 50%; }
-        .red { background: #ff5f56; }
-        .yellow { background: #ffbd2e; }
-        .green { background: #27c93f; }
-
-        .terminal-body {
+            width: 80%;
+            max-width: 800px;
+            background: var(--term-bg);
+            border: 1px solid var(--text-primary);
+            box-shadow: 0 0 20px rgba(0, 255, 200, 0.1);
             padding: 20px;
-            color: #d4d4d4;
-            font-size: 0.9rem;
+            position: relative;
+        }
+        
+        /* 终端顶部标题栏装饰 */
+        .terminal-window::before {
+            content: "user@root: ~/blog_system";
+            position: absolute;
+            top: -25px;
+            left: 0;
+            background: var(--text-primary);
+            color: var(--bg-color);
+            padding: 2px 10px;
+            font-size: 0.8rem;
+            font-weight: bold;
         }
 
-        .cmd { color: var(--accent-color); }
-        .string { color: #ce9178; }
+        /* 故障文字效果类 */
+        .glitch-text {
+            color: #fff;
+            font-size: 2rem;
+            font-weight: bold;
+            /* 利用红蓝错位模拟故障感 */
+            text-shadow: 
+                2px 0 0 rgba(255, 0, 0, 0.7),
+                -2px 0 0 rgba(0, 0, 255, 0.7);
+        }
 
+        .command-line {
+            margin-top: 1rem;
+            color: var(--text-primary);
+        }
+
+        /* --- 纯CSS实现的光标闪烁 --- */
+        .blink-cursor {
+            display: inline-block;
+            width: 10px;
+            height: 18px;
+            background: var(--text-primary);
+            margin-left: 5px;
+            vertical-align: middle;
+            animation: blink 1s steps(2, start) infinite;
+        }
+
+        @keyframes blink {
+            to { visibility: hidden; }
+        }
+
+        /* --- 博客文章列表区域 --- */
+        #data-logs {
+            padding: 4rem 10%;
+        }
+
+        .section-header {
+            border-left: 4px solid var(--neon-pink);
+            padding-left: 1rem;
+            margin-bottom: 2rem;
+            color: #fff;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+
+        /* 数据卡片样式 */
+        .data-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(0, 255, 200, 0.2);
+            padding: 1.5rem;
+            position: relative;
+            transition: all 0.3s ease;
+            overflow: hidden;
+        }
+        
+        /* Hover 时卡片发光，增加互动感 */
+        .data-card:hover {
+            border-color: var(--text-primary);
+            box-shadow: 0 0 15px rgba(0, 255, 200, 0.3);
+            transform: translateY(-2px);
+        }
+
+        /* 卡片角落装饰 */
+        .data-card::after {
+            content: "";
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            width: 20px;
+            height: 20px;
+            background: linear-gradient(135deg, transparent 50%, var(--text-primary) 50%);
+            opacity: 0.5;
+        }
+
+        .meta-info {
+            font-size: 0.7rem;
+            color: var(--neon-pink);
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+
+        .data-card h3 {
+            color: var(--text-primary);
+            margin-bottom: 1rem;
+        }
+
+        .status-bar {
+            margin-top: 1rem;
+            height: 4px;
+            background: #1a1a1a;
+            position: relative;
+        }
+        /* 模拟进度条 */
+        .status-bar::after {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            width: 60%; /* 假装进度60% */
+            background: var(--text-primary);
+            box-shadow: 0 0 10px var(--text-primary);
+        }
+        
         /* 页脚 */
         footer {
             text-align: center;
             padding: 2rem;
-            background: #050608;
-            color: #666;
             font-size: 0.8rem;
+            border-top: 1px solid #1a1a1a;
+            color: #4a4a4a;
         }
 
-        /* 移动端适配 */
-        @media (max-width: 768px) {
-            .nav-links { display: none; }
-            .hero-content h1 { font-size: 2rem; }
-            section { padding: 3rem 5%; }
-        }
     </style>
 </head>
 <body>
 
     <nav>
-        <a href="#" class="logo">&lt;Geek_Space /&gt;</a>
+        <div class="logo">GHOST_PROTOCOL://</div>
         <div class="nav-links">
-            <a href="#hero">首页</a>
-            <a href="#articles">技术文章</a>
-            <a href="#about">关于我</a>
+            <a href="#" onclick="return false;">/HOME</a>
+            <a href="#" onclick="return false;">/LOGS</a>
+            <a href="#" onclick="return false;">/SYSTEM</a>
         </div>
     </nav>
 
-    <header id="hero">
-        <canvas id="canvas-bg"></canvas> <div class="hero-content">
-            <h1>Hello, I'm <span id="name">Admin</span></h1>
-            <div class="typing-text">I am a <span id="typewriter"></span><span class="blink">|</span></div>
+    <header id="terminal-hero">
+        <div class="terminal-window">
+            <div>
+                <span style="color: #555;">&gt; Initializing boot sequence... OK</span><br>
+                <span style="color: #555;">&gt; Loading kernel modules... OK</span><br>
+                <span style="color: #555;">&gt; Mounting file systems... OK</span><br>
+                <br>
+                <h1 class="glitch-text">WELCOME TO THE VOID</h1>
+                <p>This is a static representation of a dynamic mind.</p>
+                <p>No JavaScript detected. Pure CSS simulation engaged.</p>
+                <br>
+                <p class="command-line">root@user:~$ cat latest_thought.txt<span class="blink-cursor"></span></p>
+            </div>
         </div>
     </header>
 
-    <section id="articles">
-        <h2 class="section-title">Latest_Logs</h2>
+    <section id="data-logs">
+        <h2 class="section-header">// RECENT_DATA_ENTRIES</h2>
         <div class="grid-container">
-            <div class="card">
-                <h3>基于增量学习的入侵检测</h3>
-                <p>探讨如何在网络流量数据发生概念漂移时，保持模型的检测精度并克服灾难性遗忘...</p>
-                <span class="tag">AI Security</span>
-                <span class="tag">Paper</span>
+            <div class="data-card">
+                <span class="meta-info">[LOG_ID: 0x2A4F] [STATUS: ENCRYPTED]</span>
+                <h3>神经网络的伦理边界探讨</h3>
+                <p>当模型推理能力超越人类设定阈值时，我们也需要思考数字意识的控制权问题...</p>
+                <div class="status-bar"></div>
             </div>
-            <div class="card">
-                <h3>IPv6 网络下的 AI 应用</h3>
-                <p>记录一次关于 IPv6 竞赛的思考，如何利用机器学习优化下一代网络管理。</p>
-                <span class="tag">IPv6</span>
-                <span class="tag">Network</span>
+            <div class="data-card">
+                <span class="meta-info">[LOG_ID: 0x9E1B] [STATUS: CORRUPTED]</span>
+                <h3>关于 CSS-Only 技术的思考</h3>
+                <p>放弃脚本控制，回归样式本源。探索只使用声明式语法构建交互界面的可能性边界。数据损坏...</p>
+                <div class="status-bar" style="width: 85%::after"></div>
             </div>
-            <div class="card">
-                <h3>Linux Kernel 编译指北</h3>
-                <p>从源码开始，手把手记录内核编译过程中的坑与解决方案。</p>
-                <span class="tag">Linux</span>
-                <span class="tag">Kernel</span>
-            </div>
-             <div class="card">
-                <h3>Hugging Face 节点优化</h3>
-                <p>关于 VLESS 与 Trojan 协议在云空间部署时的连接稳定性分析。</p>
-                <span class="tag">Proxy</span>
-                <span class="tag">Web</span>
-            </div>
-        </div>
-    </section>
-
-    <section id="about">
-        <h2 class="section-title">root@localhost:~# whoami</h2>
-        <div class="about-content">
-            <div class="terminal-window">
-                <div class="terminal-header">
-                    <div class="dot red"></div>
-                    <div class="dot yellow"></div>
-                    <div class="dot green"></div>
-                </div>
-                <div class="terminal-body">
-                    <p><span class="cmd">user@pc:~$</span> cat profile.json</p>
-                    <p>{</p>
-                    <p>&nbsp;&nbsp;"role": "<span class="string">Customer Service & Researcher</span>",</p>
-                    <p>&nbsp;&nbsp;"interests": [</p>
-                    <p>&nbsp;&nbsp;&nbsp;&nbsp;"<span class="string">Network Security</span>",</p>
-                    <p>&nbsp;&nbsp;&nbsp;&nbsp;"<span class="string">Linux Kernel</span>",</p>
-                    <p>&nbsp;&nbsp;&nbsp;&nbsp;"<span class="string">Physics (EM)</span>"</p>
-                    <p>&nbsp;&nbsp;],</p>
-                    <p>&nbsp;&nbsp;"status": "<span class="string">Writing Proposal...</span>"</p>
-                    <p>}</p>
-                    <p><span class="cmd">user@pc:~$</span> <span class="blink">_</span></p>
-                </div>
+             <div class="data-card">
+                <span class="meta-info">[LOG_ID: 0x5C7D] [STATUS: ARCHIVED]</span>
+                <h3>Linux 内核编译笔记 v5.19</h3>
+                <p>记录一次裁剪内核以适应嵌入式设备的完整过程。模块依赖地狱的解决方案。</p>
+                <div class="status-bar"></div>
             </div>
         </div>
     </section>
 
     <footer>
-        <p>&copy; 2025 Powered by Code & Coffee.</p>
+        <p>EOF | END OF TRANSMISSION | 2025</p>
     </footer>
 
-    <script>
-        /* --- JS 逻辑部分 --- */
-
-        // 1. 打字机特效
-        const words = ["Network Researcher", "Linux User", "Customer Service Rep"];
-        let i = 0;
-        let timer;
-
-        function typeWriter() {
-            const speed = 100;
-            const wait = 2000;
-            const text = words[i % words.length];
-            const span = document.getElementById("typewriter");
-            
-            let isDeleting = false;
-            let txt = '';
-            let typeIndex = 0;
-
-            function type() {
-                if (isDeleting) {
-                    txt = text.substring(0, txt.length - 1);
-                } else {
-                    txt = text.substring(0, txt.length + 1);
-                }
-                
-                span.innerHTML = txt;
-
-                let typeSpeed = speed;
-                if (isDeleting) typeSpeed /= 2;
-
-                if (!isDeleting && txt === text) {
-                    typeSpeed = wait;
-                    isDeleting = true;
-                } else if (isDeleting && txt === '') {
-                    isDeleting = false;
-                    i++;
-                    typeSpeed = 500;
-                    setTimeout(() => requestAnimationFrame(typeWrapper), typeSpeed);
-                    return; 
-                }
-
-                setTimeout(() => requestAnimationFrame(typeWrapper), typeSpeed);
-            }
-            
-            function typeWrapper() {
-                // 每次重新获取 current text 以支持循环
-                const currentText = words[i % words.length];
-                if (!isDeleting && txt === currentText) {
-                     isDeleting = true;
-                     setTimeout(type, wait);
-                } else if (isDeleting && txt === '') {
-                    isDeleting = false;
-                    i++;
-                    setTimeout(type, 500);
-                } else {
-                    if (isDeleting) {
-                        txt = currentText.substring(0, txt.length - 1);
-                    } else {
-                        txt = currentText.substring(0, txt.length + 1);
-                    }
-                    span.innerHTML = txt;
-                    setTimeout(type, isDeleting ? speed / 2 : speed);
-                }
-            }
-            // 启动简易版逻辑以避免复杂的递归 bug
-            startSimpleTyper();
-        }
-
-        function startSimpleTyper() {
-            const el = document.getElementById('typewriter');
-            let wordIndex = 0;
-            let charIndex = 0;
-            let isDeleting = false;
-
-            function loop() {
-                const currentWord = words[wordIndex % words.length];
-                
-                if (isDeleting) {
-                    el.textContent = currentWord.substring(0, charIndex - 1);
-                    charIndex--;
-                } else {
-                    el.textContent = currentWord.substring(0, charIndex + 1);
-                    charIndex++;
-                }
-
-                let nextSpeed = isDeleting ? 50 : 100;
-
-                if (!isDeleting && charIndex === currentWord.length) {
-                    nextSpeed = 2000; // 停顿
-                    isDeleting = true;
-                } else if (isDeleting && charIndex === 0) {
-                    isDeleting = false;
-                    wordIndex++;
-                    nextSpeed = 500;
-                }
-
-                setTimeout(loop, nextSpeed);
-            }
-            loop();
-        }
-
-        // 2. 粒子网络背景特效
-        const canvas = document.getElementById('canvas-bg');
-        const ctx = canvas.getContext('2d');
-        let particlesArray;
-
-        // 设置画布大小
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-
-        window.addEventListener('resize', () => {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-            init();
-        });
-
-        class Particle {
-            constructor() {
-                this.x = Math.random() * canvas.width;
-                this.y = Math.random() * canvas.height;
-                this.directionX = (Math.random() * 2) - 1; // 速度
-                this.directionY = (Math.random() * 2) - 1;
-                this.size = (Math.random() * 2) + 1; // 大小
-                this.color = '#66fcf1';
-            }
-
-            draw() {
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2, false);
-                ctx.fillStyle = this.color;
-                ctx.fill();
-            }
-
-            update() {
-                // 边界检测
-                if (this.x > canvas.width || this.x < 0) this.directionX = -this.directionX;
-                if (this.y > canvas.height || this.y < 0) this.directionY = -this.directionY;
-
-                this.x += this.directionX;
-                this.y += this.directionY;
-                this.draw();
-            }
-        }
-
-        function init() {
-            particlesArray = [];
-            let numberOfParticles = (canvas.height * canvas.width) / 9000; // 根据屏幕密度计算粒子数
-            for (let i = 0; i < numberOfParticles; i++) {
-                particlesArray.push(new Particle());
-            }
-        }
-
-        function animate() {
-            requestAnimationFrame(animate);
-            ctx.clearRect(0, 0, innerWidth, innerHeight);
-
-            for (let i = 0; i < particlesArray.length; i++) {
-                particlesArray[i].update();
-            }
-            connect();
-        }
-
-        // 连线逻辑：如果两个粒子够近，就画线
-        function connect() {
-            let opacityValue = 1;
-            for (let a = 0; a < particlesArray.length; a++) {
-                for (let b = a; b < particlesArray.length; b++) {
-                    let distance = ((particlesArray[a].x - particlesArray[b].x) * (particlesArray[a].x - particlesArray[b].x)) + 
-                                   ((particlesArray[a].y - particlesArray[b].y) * (particlesArray[a].y - particlesArray[b].y));
-                    if (distance < (canvas.width/7) * (canvas.height/7)) {
-                        opacityValue = 1 - (distance/20000);
-                        ctx.strokeStyle = 'rgba(102, 252, 241,' + opacityValue + ')';
-                        ctx.lineWidth = 1;
-                        ctx.beginPath();
-                        ctx.moveTo(particlesArray[a].x, particlesArray[a].y);
-                        ctx.lineTo(particlesArray[b].x, particlesArray[b].y);
-                        ctx.stroke();
-                    }
-                }
-            }
-        }
-
-        // 启动特效
-        init();
-        animate();
-        startSimpleTyper(); // 启动打字机
-
-    </script>
 </body>
 </html>
